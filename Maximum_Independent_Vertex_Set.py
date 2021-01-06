@@ -23,19 +23,16 @@ def generate_graphs_to_file(min_vertices, max_vertices, percent_edges, filename)
             graph = [[0 for i in range(num_vert)] for j in range(num_vert)]
             num_edges = 0
             while get_percentage_edges(num_edges, num_vert) < pct_edges:
-                for i in range(num_vert):
-                    for j in range(num_vert):
-                        if j != i and graph[i][j] == 0:
-                            edge = random.randint(0, 1)
-                            graph[i][j] = edge
-                            graph[j][i] = edge
-                            num_edges += edge
-                            if get_percentage_edges(num_edges, num_vert) >= pct_edges:
-                                write_graph_to_file(graph, file, num_vert, pct_edges)
-                                break  # Break the inner loop
-                    else:
-                        continue  # Continue if the inner loop wasn't broken
-                    break  # Inner loop was broken, break the outer loop
+                i = random.randint(0, num_vert - 1)
+                j = random.randint(0, num_vert - 1)
+                if j != i and graph[i][j] == 0:
+                    edge = random.randint(0, 1)
+                    graph[i][j] = edge
+                    graph[j][i] = edge
+                    num_edges += edge
+                    if get_percentage_edges(num_edges, num_vert) >= pct_edges:
+                        write_graph_to_file(graph, file, num_vert, pct_edges)
+                        break
     file.close()
 
 
