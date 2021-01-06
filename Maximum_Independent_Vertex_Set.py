@@ -4,7 +4,9 @@
 
 __author__ = "Rafael Sá, 104552, rafael.sa@ua.pt, MEI"
 
+import math
 import random
+import time
 from itertools import combinations
 
 count_verifications = 0
@@ -117,31 +119,45 @@ def get_maximum_independent_set_exhaustive(graph):
 def get_max_attempts(percentage):
     """Return a percentage of the total number of sets"""
     global graph_num_vertices
-    vertices = [i for i in range(graph_num_vertices)]
-    total_sets = 0
-    for i in range(graph_num_vertices, 0, -1):
-        comb = combinations(vertices, i)
-        total_sets += len(list(comb))
+    total_sets = math.pow(2, graph_num_vertices) - 1
     result = round(total_sets * percentage)
     if result == 0:
         result = 1
     return result
 
 
+def check_repetition(sets_verified, candidate):
+    """Check if a candidate set has already been checked"""
+    if len(sets_verified) == 0:
+        return False
+    for s in sets_verified:
+        is_different = False
+        for element in s:
+            if element not in candidate:
+                is_different = True
+        if not is_different:
+            return True
+    return False
+
+
 def get_maximum_independent_set_randomized(graph, max_attempts):
     """Try to determine and return a possible maximum independent vertex set of a graph g
     using a randomized algorithm."""
     global graph_num_vertices
+    sets_verified = []
     vertices = [i for i in range(graph_num_vertices)]
-    attempts = 0
+    count_attempts = 0
     size = 1
     best_set = []
-    while attempts < max_attempts and size <= graph_num_vertices:
-        attempts += 1
+    while count_attempts < max_attempts and size <= graph_num_vertices:
+        count_attempts += 1
         candidate = random.sample(vertices, k=size)
-        if check_independence(graph, candidate):
-            best_set = candidate
-            size += 1
+        if not check_repetition(sets_verified, candidate):
+            sets_verified.append(candidate)
+            if check_independence(graph, candidate):
+                best_set = candidate
+                size += 1
+                sets_verified = []
     return best_set
 
 
@@ -149,7 +165,7 @@ if __name__ == '__main__':
     filename_graphs = "graphs.txt"
 
     # Generate Graphs
-    percentage_edges = [0, 25, 50, 75, 100]
+    percentage_edges = [25, 50, 75]
     min_vert = 2
     max_vert = 25
     generate_graphs_to_file(min_vert, max_vert, percentage_edges, filename_graphs)
@@ -160,7 +176,15 @@ if __name__ == '__main__':
         g = read_graph_from_file(file_graphs)
         if g is None:
             break
-        rand = get_maximum_independent_set_randomized(g, get_max_attempts(0.001))
+        attempts = get_max_attempts(0.01)
+        print("Number of Vertices: " + str(graph_num_vertices) + " ; Percentage of Edges: " + str(graph_percentage_edges) + "%")
+        start = time.time()
+        rand = get_maximum_independent_set_randomized(g, attempts)
+        end = time.time()
+        print("\tExecution Time Randomized: " + str(end - start))
+        start = time.time()
         exhaustive = get_maximum_independent_set_exhaustive(g)
-        print(len(rand) == len(exhaustive))
+        end = time.time()
+        print("\tExecution Time Exhaustive: " + str(end - start))
+        # print(len(rand) == len(exhaustive))
     file_graphs.close()
