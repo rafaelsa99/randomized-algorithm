@@ -164,24 +164,31 @@ if __name__ == '__main__':
     # Generate Graphs
     percentage_edges = [25, 50, 75]
     min_vert = 2
-    max_vert = 25
+    max_vert = 15
     generate_graphs_to_file(min_vert, max_vert, percentage_edges, filename_graphs)
 
     # Read Graphs
+    total_graphs = 0
+    count_optimal_result = 0
     file_graphs = open(filename_graphs, "r")
     while True:
         g = read_graph_from_file(file_graphs)
         if g is None:
             break
-        attempts = get_max_attempts(0.01)
+        total_graphs += 1
+        attempts = get_max_attempts(0.3)
         print("Number of Vertices: " + str(graph_num_vertices) + " ; Percentage of Edges: " + str(graph_percentage_edges) + "%")
         start = time.time()
         rand = get_maximum_independent_set_randomized(g, attempts)
         end = time.time()
         print("\tExecution Time Randomized: " + str(end - start))
+        print("\tResult Randomized: " + str(rand))
         start = time.time()
         exhaustive = get_maximum_independent_set_exhaustive(g)
         end = time.time()
         print("\tExecution Time Exhaustive: " + str(end - start))
-        # print(len(rand) == len(exhaustive))
+        print("\tResult Exhaustive: " + str(exhaustive))
+        if len(rand) == len(exhaustive):
+            count_optimal_result += 1
+    print("\nPercentage of optimal results: " + str(round((count_optimal_result / total_graphs) * 100, 2)) + "%")
     file_graphs.close()
