@@ -137,18 +137,32 @@ def check_repetition(sets_verified, candidate):
     return False
 
 
+def all_sets_verified(sets_verified, k, num_elements):
+    """Check if all sets of size k have already been verified"""
+    max_combinations = math.factorial(num_elements) / (math.factorial(k) * (math.factorial(num_elements - k)))
+    # print(str(len(sets_verified)) + " of " + str(int(max_combinations)))
+    if len(sets_verified) == int(max_combinations):
+        return True
+    return False
+
+
 def get_maximum_independent_set_randomized(graph, max_attempts):
     """Try to determine and return a possible maximum independent vertex set of a graph g
     using a randomized algorithm."""
     global graph_num_vertices
+    global count_verifications
+    count_attempts = 0
     sets_verified = []
     vertices = [i for i in range(graph_num_vertices)]
-    count_attempts = 0
     size = 1
     best_set = []
+    # while count_verifications < max_attempts and size <= graph_num_vertices:
     while count_attempts < max_attempts and size <= graph_num_vertices:
-        count_attempts += 1
         candidate = random.sample(vertices, k=size)
+        count_attempts += 1
+        if all_sets_verified(sets_verified, size, len(vertices)):
+            size += 1
+            sets_verified = []
         if not check_repetition(sets_verified, candidate):
             sets_verified.append(candidate)
             if check_independence(graph, candidate):
@@ -177,17 +191,21 @@ if __name__ == '__main__':
             break
         total_graphs += 1
         attempts = get_max_attempts(0.3)
-        print("Number of Vertices: " + str(graph_num_vertices) + " ; Percentage of Edges: " + str(graph_percentage_edges) + "%")
+        print("Number of Vertices: " + str(graph_num_vertices) +
+              " ; Percentage of Edges: " + str(graph_percentage_edges) + "%")
+        count_verifications = 0
         start = time.time()
         rand = get_maximum_independent_set_randomized(g, attempts)
         end = time.time()
         print("\tExecution Time Randomized: " + str(end - start))
         print("\tResult Randomized: " + str(rand))
+        print("\tAttempts: " + str(count_verifications) + " -> Max Attempts: " + str(attempts))
         start = time.time()
         exhaustive = get_maximum_independent_set_exhaustive(g)
         end = time.time()
         print("\tExecution Time Exhaustive: " + str(end - start))
         print("\tResult Exhaustive: " + str(exhaustive))
+        print("\tIs equal: " + str(len(rand) == len(exhaustive)))
         if len(rand) == len(exhaustive):
             count_optimal_result += 1
     print("\nPercentage of optimal results: " + str(round((count_optimal_result / total_graphs) * 100, 2)) + "%")
