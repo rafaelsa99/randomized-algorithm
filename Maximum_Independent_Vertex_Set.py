@@ -7,7 +7,11 @@ __author__ = "Rafael Sá, 104552, rafael.sa@ua.pt, MEI"
 import math
 import random
 import time
+import csv
 from itertools import combinations
+
+MAX_ATTEMPTS = 5000
+PERCENTAGE_OF_SETS = 0.3
 
 count_verifications = 0
 graph_num_vertices = 0
@@ -44,19 +48,6 @@ def write_graph_to_file(graph, file_descriptor, num_vertices, percent_edges):
             file_descriptor.write(str(v) + " ")
         file_descriptor.write("\n")
     file_descriptor.write("\n")
-
-
-def print_graph(graph):
-    n = len(graph)
-    for i in range(n):
-        print("\t" + str(i), end="")
-    print()
-    for i in range(n):
-        print(str(i) + "\t", end="")
-        for j in range(n):
-            print(str(graph[i][j]) + "\t", end="")
-        print()
-    print()
 
 
 def get_percentage_edges(num_edges, num_vert):
@@ -137,32 +128,21 @@ def check_repetition(sets_verified, candidate):
     return False
 
 
-def all_sets_verified(sets_verified, k, num_elements):
-    """Check if all sets of size k have already been verified"""
-    max_combinations = math.factorial(num_elements) / (math.factorial(k) * (math.factorial(num_elements - k)))
-    # print(str(len(sets_verified)) + " of " + str(int(max_combinations)))
-    if len(sets_verified) == int(max_combinations):
-        return True
-    return False
-
-
 def get_maximum_independent_set_randomized(graph, max_attempts):
     """Try to determine and return a possible maximum independent vertex set of a graph g
     using a randomized algorithm."""
     global graph_num_vertices
     global count_verifications
+    if max_attempts > MAX_ATTEMPTS:
+        max_attempts = MAX_ATTEMPTS
     count_attempts = 0
     sets_verified = []
     vertices = [i for i in range(graph_num_vertices)]
     size = 1
     best_set = []
-    # while count_verifications < max_attempts and size <= graph_num_vertices:
     while count_attempts < max_attempts and size <= graph_num_vertices:
         candidate = random.sample(vertices, k=size)
         count_attempts += 1
-        if all_sets_verified(sets_verified, size, len(vertices)):
-            size += 1
-            sets_verified = []
         if not check_repetition(sets_verified, candidate):
             sets_verified.append(candidate)
             if check_independence(graph, candidate):
@@ -174,39 +154,65 @@ def get_maximum_independent_set_randomized(graph, max_attempts):
 
 if __name__ == '__main__':
     filename_graphs = "graphs.txt"
+    filename_results = "results.txt"
+    filename_results_excel = "results_to_excel.csv"
 
     # Generate Graphs
     percentage_edges = [25, 50, 75]
     min_vert = 2
-    max_vert = 15
+    max_vert = 25
     generate_graphs_to_file(min_vert, max_vert, percentage_edges, filename_graphs)
 
     # Read Graphs
     total_graphs = 0
     count_optimal_result = 0
     file_graphs = open(filename_graphs, "r")
+    file_results = open(filename_results, "w")
+    file_results_to_excel = open(filename_results_excel, "w", newline='')
+    excel_writer = csv.writer(file_results_to_excel, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    file_results.write("Results for the problem: Maximum Independent Vertex Set\n")
+    file_results.write("Results regarding the graphs of the file \"" + filename_graphs + "\"\n\n")
+    excel_writer.writerow(['Percentage of Edges', 'Number of Vertices', 'Number of Tested Solutions',
+                           'Execution Time', 'Percentage of Optimal Results'])
+    current_percentage_edges = 0
     while True:
         g = read_graph_from_file(file_graphs)
         if g is None:
             break
+        if graph_percentage_edges != current_percentage_edges:
+            total_graphs = 0
+            count_optimal_result = 0
+            current_percentage_edges = graph_percentage_edges
         total_graphs += 1
-        attempts = get_max_attempts(0.3)
-        print("Number of Vertices: " + str(graph_num_vertices) +
-              " ; Percentage of Edges: " + str(graph_percentage_edges) + "%")
+        file_results.write("Testing graph with: " + str(graph_num_vertices) + " vertices and " +
+                           str(graph_percentage_edges) + "% edges:\n\n")
+        attempts = get_max_attempts(PERCENTAGE_OF_SETS)
         count_verifications = 0
         start = time.time()
         rand = get_maximum_independent_set_randomized(g, attempts)
         end = time.time()
-        print("\tExecution Time Randomized: " + str(end - start))
-        print("\tResult Randomized: " + str(rand))
-        print("\tAttempts: " + str(count_verifications) + " -> Max Attempts: " + str(attempts))
-        start = time.time()
+        tested_solutions = count_verifications
+        file_results.write("Randomized Algorithm:\n")
+        file_results.write("\tResult: " + str(rand) + "\n")
+        file_results.write("\tCardinality of the set: " + str(len(rand)) + "\n")
+        file_results.write("\tNumber of Tested Solutions: " + str(count_verifications) + "\n")
+        file_results.write("\tNumber of Maximum Attempts: " + str(attempts) + "\n")
+        file_results.write(f"\tExecution time: {(end - start):.2f} seconds\n")
+        startE = time.time()
         exhaustive = get_maximum_independent_set_exhaustive(g)
-        end = time.time()
-        print("\tExecution Time Exhaustive: " + str(end - start))
-        print("\tResult Exhaustive: " + str(exhaustive))
-        print("\tIs equal: " + str(len(rand) == len(exhaustive)))
+        endE = time.time()
+        file_results.write("Exhaustive Search Algorithm:\n")
+        file_results.write("\tResult: " + str(exhaustive) + "\n")
+        file_results.write("\tCardinality of the set: " + str(len(exhaustive)) + "\n")
+        file_results.write(f"\tExecution time: {(endE - startE):.2f} seconds\n")
         if len(rand) == len(exhaustive):
             count_optimal_result += 1
-    print("\nPercentage of optimal results: " + str(round((count_optimal_result / total_graphs) * 100, 2)) + "%")
+        file_results.write("Percentage of optimal results: " +
+                           str(round((count_optimal_result / total_graphs) * 100, 2)) + "%\n\n")
+        excel_writer.writerow([graph_percentage_edges, graph_num_vertices, tested_solutions,
+                               (end - start), round((count_optimal_result / total_graphs) * 100, 2)])
+    file_results.close()
+    file_results_to_excel.close()
     file_graphs.close()
+    print("\nResults written to the file: \"" + filename_results + "\"")
+    print("Results to use in excel written to the file: \"" + filename_results_excel + "\"")
